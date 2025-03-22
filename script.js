@@ -1,3 +1,24 @@
+// Global variables to store response data and a trial counter.
+let responseData = [];
+let trialCount = 1;
+
+// Function to download the recorded data as a CSV file.
+function downloadCSV(data, filename) {
+  let csv = 'level,tutorial,trial,answer,response,rt\n';
+  data.forEach(row => {
+    csv += `${row.level},${row.tutorial},${row.trial},${row.answer},${row.response},${row.rt}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.setAttribute('hidden', '');
+  a.setAttribute('href', url);
+  a.setAttribute('download', filename);
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 // Create a single AudioContext instance (reuse it throughout your app)
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -112,6 +133,7 @@ class Card {
     waitForResponse() {
       const instruction = document.getElementById('instruction');
       instruction.textContent = "Now, press the corresponding key.";
+      this.startTime = Date.now();
       document.addEventListener('keydown', this.checkResponse);
     }
   
@@ -123,6 +145,20 @@ class Card {
         }
 
         const centerElem = document.getElementById('centerCard');
+        const rt = Date.now() - this.startTime; // reaction time in ms
+        const isCorrect = key === this.correctKey.toUpperCase() ? 1 : 0;
+
+        // Record the data.
+        responseData.push({
+            level: 1,
+            tutorial: 1, // tutorial phase
+            trial: trialCount,
+            answer: this.correctKey.toUpperCase(),
+            response: isCorrect,
+            rt: rt
+        });
+        trialCount++;
+        
         // If the correct key is pressed.
         if (event.key.toUpperCase() === this.correctKey.toUpperCase()) {
           document.getElementById('instruction').textContent = "Good job!";
@@ -154,9 +190,9 @@ class Card {
         }
     }
   }
-  
-  // Class for an individual trial during the game.
-  class Trial {
+
+// class for running the trials
+class Trial {
     constructor(game, cardShape, correctKey) {
       this.game = game;
       this.cardShape = cardShape;
@@ -169,75 +205,103 @@ class Card {
       let centerCard = new Card(this.cardShape, 'center');
       centerCard.render();
       document.getElementById('instruction').textContent = "Sort the card using the appropriate key.";
-      // Listen for the participant’s response.
+      // Record the start time.
+      this.startTime = Date.now();
+      // Listen for the participant's response.
       document.addEventListener('keydown', this.handleResponse);
     }
   
     handleResponse(event) {
-        // Only respond to L or S key presses.
-        const key = event.key.toUpperCase();
-        if (key !== 'L' && key !== 'S') {
-            return;
+      // Only respond to L or S key presses.
+      const key = event.key.toUpperCase();
+      if (key !== 'L' && key !== 'S') return;
+      
+      const centerElem = document.getElementById('centerCard');
+      const rt = Date.now() - this.startTime; // Reaction time in ms
+      const isCorrect = key === this.correctKey.toUpperCase() ? 1 : 0;
+  
+      // Record the trial data.
+      responseData.push({
+        level: this.game.currentLevel,  // Use the current level from the game instance.
+        tutorial: 0,                    // 0 indicates a real trial.
+        trial: trialCount,
+        answer: this.correctKey.toUpperCase(),
+        response: isCorrect,
+        rt: rt
+      });
+      trialCount++;
+      
+      if (isCorrect) {
+        document.getElementById('instruction').textContent = "Good job!";
+        playSound('correct'); 
+        if (this.correctKey.toUpperCase() === 'L') {
+          centerElem.style.transform = "translateX(150px)";
+        } else if (this.correctKey.toUpperCase() === 'S') {
+          centerElem.style.transform = "translateX(-150px)";
         }
-        const centerElem = document.getElementById('centerCard');
-        // Check if the response is correct.
-        if (event.key.toUpperCase() === this.correctKey.toUpperCase()) {
-          document.getElementById('instruction').textContent = "Good job!";
-          // Move the card according to the correct key.
-          if (this.correctKey.toUpperCase() === 'L') {
-            playSound('correct');
-            centerElem.style.transform = "translateX(150px)";
-          } else if (this.correctKey.toUpperCase() === 'S') {
-            playSound('correct');
-            centerElem.style.transform = "translateX(-150px)";
-          }
-        } else {
-          // For an incorrect response, display message.
-          document.getElementById('instruction').textContent = "Incorrect. Moving on.";
-          // Move the card based on the key that was pressed if it's one of our valid keys.
-          if (event.key.toUpperCase() === 'L') {
-            playSound('incorrect');
-            centerElem.style.transform = "translateX(150px)";
-          } else if (event.key.toUpperCase() === 'S') {
-            playSound('incorrect');
-            centerElem.style.transform = "translateX(-150px)";
-          }
+      } else {
+        document.getElementById('instruction').textContent = "Incorrect. Moving on.";
+        playSound('incorrect'); 
+        if (key === 'L') {
+          centerElem.style.transform = "translateX(150px)";
+        } else if (key === 'S') {
+          centerElem.style.transform = "translateX(-150px)";
         }
-        document.removeEventListener('keydown', this.handleResponse);
-        setTimeout(() => {
-          this.game.nextTrial();
-        }, 1000);
+      }
+      document.removeEventListener('keydown', this.handleResponse);
+      setTimeout(() => {
+        this.game.nextTrial();
+      }, 1000);
     }
   }
   
-  // Main Game class that initializes tutorials and trials.
+  // Class for the game.
   class Game {
     constructor() {
       this.tutorials = [];
       this.trials = [];
       this.currentTrialIndex = 0;
+      this.currentLevel = 1;
+      this.totalLevels = 3;
+      // Bind the level transition handlers.
+      this.handleLevelContinue = this.handleLevelContinue.bind(this);
+      this.handleLevel2Decision = this.handleLevel2Decision.bind(this);
     }
   
-    init() {
-      // Render static cards.
-      new Card("Circle", "left").render();
-      new Card("Square", "right").render();
-  
-      // Setup tutorials:
-      // First tutorial: sorting a square using the L key.
-      this.tutorials.push(new Tutorial(this, "square", "L"));
-      // Second tutorial: sorting a circle using the S key.
-      this.tutorials.push(new Tutorial(this, "circle", "S"));
-  
-      // Setup level one trials (for example, 16 trials with random shapes).
-      for (let i = 0; i < 16; i++) {
-        let shape = Math.random() > 0.5 ? "square" : "circle";
-        let correctKey = shape === "square" ? "L" : "S";
-        this.trials.push(new Trial(this, shape, correctKey));
+    // Load the tutorials and trials for a given level.
+    loadLevel(level) {
+      // Reset tutorials and trials.
+      this.tutorials = [];
+      this.trials = [];
+      // Example: set up tutorials and trials for each level.
+      // For level 1, we add two tutorials and 16 trials.
+      if (level === 1) {
+        this.tutorials.push(new Tutorial(this, "square", "L"));
+        this.tutorials.push(new Tutorial(this, "circle", "S"));
+        for (let i = 0; i < 16; i++) {
+          let shape = Math.random() > 0.5 ? "square" : "circle";
+          let correctKey = shape === "square" ? "L" : "S";
+          this.trials.push(new Trial(this, shape, correctKey));
+        }
+      } else if (level === 2) {
+        // Set up level 2 (you can customize as needed)
+        this.tutorials.push(new Tutorial(this, "square", "L"));
+        for (let i = 0; i < 20; i++) {
+          let shape = Math.random() > 0.5 ? "square" : "circle";
+          let correctKey = shape === "square" ? "L" : "S";
+          this.trials.push(new Trial(this, shape, correctKey));
+        }
+      } else if (level === 3) {
+        // Set up level 3 (customize as desired)
+        this.tutorials.push(new Tutorial(this, "circle", "S"));
+        for (let i = 0; i < 20; i++) {
+          let shape = Math.random() > 0.5 ? "square" : "circle";
+          let correctKey = shape === "square" ? "L" : "S";
+          this.trials.push(new Trial(this, shape, correctKey));
+        }
       }
-  
-      // Begin with the first tutorial.
-      this.startNextTutorial();
+      // Reset trial index for the new level.
+      this.currentTrialIndex = 0;
     }
   
     startNextTutorial() {
@@ -246,33 +310,74 @@ class Card {
         tutorial.start();
       } else {
         // After tutorials, prompt to start the trials.
-        document.getElementById('instruction').textContent = "Tutorials complete. Press spacebar to start the trials.";
-        document.addEventListener('keydown', this.startTrials.bind(this));
+        document.getElementById('instruction').textContent =
+          "Tutorials complete. Press spacebar to start the trials.";
+        document.addEventListener("keydown", this.startTrials.bind(this));
       }
     }
   
     startTrials(event) {
-      if (event.code === 'Space') {
-        document.removeEventListener('keydown', this.startTrials.bind(this));
+      if (event.code === "Space") {
+        document.removeEventListener("keydown", this.startTrials.bind(this));
         this.nextTrial();
       }
     }
-  
-    nextTrial() {
-      // Clear the center card for the next trial.
-      const centerCardElem = document.getElementById('centerCard');
-      centerCardElem.style.display = "none";
-      centerCardElem.style.transform = "translateX(0)";
-      // Show the center card element for the next trial.
-      centerCardElem.style.display = "inline-block";
-  
-      if (this.currentTrialIndex < this.trials.length) {
-        this.trials[this.currentTrialIndex].start();
-        this.currentTrialIndex++;
-      } else {
-        document.getElementById('instruction').textContent = "Game complete. Thank you for playing!";
-      }
+    
+    handleLevelContinue(event) {
+        if (event.code === "Space") {
+          document.removeEventListener("keydown", this.handleLevelContinue);
+          // Move to level 2.
+          this.currentLevel = 2;
+          this.loadLevel(this.currentLevel);
+          this.startNextTutorial();
+        }
     }
+
+    handleLevel2Decision(event) {
+        if (event.code === "Space") {
+          document.removeEventListener("keydown", this.handleLevel2Decision);
+          // Continue to level 3.
+          this.currentLevel = 3;
+          this.loadLevel(this.currentLevel);
+          this.startNextTutorial();
+        }
+    }
+
+    nextTrial() {
+        // Clear and reset the center card.
+        const centerCardElem = document.getElementById("centerCard");
+        centerCardElem.style.display = "none";
+        centerCardElem.style.transform = "translateX(0)";
+        centerCardElem.style.display = "inline-block";
+      
+        if (this.currentTrialIndex < this.trials.length) {
+          this.trials[this.currentTrialIndex].start();
+          this.currentTrialIndex++;
+        } else {
+          // End of current level.
+          if (this.currentLevel === 1) {
+            // End of level 1: show message and wait for spacebar to continue to level 2.
+            document.getElementById("instruction").textContent =
+              "Level 1 complete. Press spacebar when you are ready to continue.";
+            document.addEventListener("keydown", this.handleLevelContinue);
+          } else if (this.currentLevel === 2) {
+            // End of level 2: offer a download option or continue to level 3.
+            document.getElementById("instruction").textContent =
+              "Level 2 complete. Press spacebar to continue to Level 3 or click the button to download data.";
+            document.addEventListener("keydown", this.handleLevel2Decision);
+          } else if (this.currentLevel === 3) {
+            // End of level 3: game complete.
+            document.getElementById("instruction").textContent =
+              "Game complete. Click the button to download your results.";
+            const downloadBtn = document.getElementById("downloadBtn");
+            downloadBtn.style.display = "inline-block";
+            downloadBtn.addEventListener("click", () => {
+              downloadCSV(responseData, "all_levels_data.csv");
+            });
+          }
+        }
+    }
+      
   
     nextStep() {
       // Called after each tutorial completes.
@@ -283,6 +388,13 @@ class Card {
   // Start the game once the DOM is fully loaded.
   document.addEventListener("DOMContentLoaded", function () {
     let game = new Game();
-    game.init();
+    // Render the static left/right cards.
+    new Card("Circle", "left").render();
+    new Card("Square", "right").render();
+    // Load the first level.
+    game.loadLevel(game.currentLevel);
+    // Start with the first tutorial of level 1.
+    game.startNextTutorial();
   });
+  
   

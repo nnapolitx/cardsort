@@ -1,3 +1,35 @@
+// Create a single AudioContext instance (reuse it throughout your app)
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+  const oscillator = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+
+  // Configure the sound parameters based on the type
+  if (type === 'correct') {
+    oscillator.type = 'sine'; // a smooth, bell-like tone
+    oscillator.frequency.value = 600; // higher pitch for a "ding"
+    // Create a quick attack and gradual decay
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+  } else if (type === 'incorrect') {
+    oscillator.type = 'square'; // a bit harsher tone
+    oscillator.frequency.value = 300; // lower pitch for a "chirp"
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+  }
+
+  // Connect oscillator -> gain -> destination
+  oscillator.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+
+  // Start the oscillator now and stop after 1 second
+  oscillator.start();
+  oscillator.stop(audioCtx.currentTime + 1);
+}
+
 // Class representing an individual card.
 class Card {
     constructor(shape, position) {
@@ -5,22 +37,26 @@ class Card {
       this.position = position; // 'left', 'right', or 'center'
     }
     render() {
-      let element;
+      let cardElement;
       if (this.position === 'left') {
-        element = document.getElementById('leftCard');
+        cardElement = document.getElementById('leftCard');
+        cardElement.querySelector('.shape').className = "shape red-circle";
       } else if (this.position === 'right') {
-        element = document.getElementById('rightCard');
+        cardElement = document.getElementById('rightCard');
+        cardElement.querySelector('.shape').className = "shape blue-square";
       } else if (this.position === 'center') {
-        element = document.getElementById('centerCard');
-      }
-      if (element) {
-        element.textContent = this.shape;
-        element.style.display = 'inline-block';
-        // Reset any transform (for movement simulation)
-        element.style.transform = "translateX(0)";
+        cardElement = document.getElementById('centerCard');
+        if (this.shape === 'circle') {
+          cardElement.querySelector('.shape').className = "shape blue-circle";
+        } else if (this.shape === 'square') {
+          cardElement.querySelector('.shape').className = "shape red-square";
+        }
+        cardElement.style.display = 'inline-block';
+        cardElement.style.transform = "translateX(0)";
       }
     }
   }
+  
   
   // Class for a tutorial phase (for a given card shape and expected key).
   class Tutorial {
@@ -74,6 +110,7 @@ class Card {
         // If the correct key is pressed.
         if (event.key.toUpperCase() === this.correctKey.toUpperCase()) {
           document.getElementById('instruction').textContent = "Good job!";
+          playSound('correct');
           if (this.correctKey.toUpperCase() === 'L') {
             centerElem.style.transform = "translateX(150px)";
           } else if (this.correctKey.toUpperCase() === 'S') {
@@ -87,6 +124,7 @@ class Card {
         } else {
           // For an incorrect response, move the card based on the key pressed and show "try again"
           document.getElementById('instruction').textContent = "Try again. Please press the correct key.";
+          playSound('incorrect');
           if (event.key.toUpperCase() === 'L') {
             centerElem.style.transform = "translateX(150px)";
           } else if (event.key.toUpperCase() === 'S') {
@@ -131,8 +169,10 @@ class Card {
           document.getElementById('instruction').textContent = "Good job!";
           // Move the card according to the correct key.
           if (this.correctKey.toUpperCase() === 'L') {
+            playSound('correct');
             centerElem.style.transform = "translateX(150px)";
           } else if (this.correctKey.toUpperCase() === 'S') {
+            playSound('correct');
             centerElem.style.transform = "translateX(-150px)";
           }
         } else {
@@ -140,8 +180,10 @@ class Card {
           document.getElementById('instruction').textContent = "Incorrect. Moving on.";
           // Move the card based on the key that was pressed if it's one of our valid keys.
           if (event.key.toUpperCase() === 'L') {
+            playSound('incorrect');
             centerElem.style.transform = "translateX(150px)";
           } else if (event.key.toUpperCase() === 'S') {
+            playSound('incorrect');
             centerElem.style.transform = "translateX(-150px)";
           }
         }

@@ -2,32 +2,48 @@
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(type) {
-  const oscillator = audioCtx.createOscillator();
-  const gainNode = audioCtx.createGain();
-
-  // Configure the sound parameters based on the type
-  if (type === 'correct') {
-    oscillator.type = 'sine'; // a smooth, bell-like tone
-    oscillator.frequency.value = 600; // higher pitch for a "ding"
-    // Create a quick attack and gradual decay
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
-  } else if (type === 'incorrect') {
-    oscillator.type = 'square'; // a bit harsher tone
-    oscillator.frequency.value = 300; // lower pitch for a "chirp"
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
-  }
-
-  // Connect oscillator -> gain -> destination
-  oscillator.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
-
-  // Start the oscillator now and stop after 1 second
-  oscillator.start();
-  oscillator.stop(audioCtx.currentTime + 1);
+    if (type === 'correct') {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = 'sine'; // smooth, bell-like tone
+        oscillator.frequency.value = 600; // higher pitch for a "ding"
+        gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 1);
+      } else if (type === 'incorrect') {
+        // "Err-err": Two quick beeps
+        const now = audioCtx.currentTime;
+        
+        // First beep:
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'square';
+        osc1.frequency.value = 220; // slightly lower pitch than 250 Hz
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(0.5, now + 0.01);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.2); // beep lasts ~0.2 sec
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.2);
+        
+        // Second beep:
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'square';
+        osc2.frequency.value = 220;
+        gain2.gain.setValueAtTime(0, now + 0.25);
+        gain2.gain.linearRampToValueAtTime(0.5, now + 0.26);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45); // beep lasts ~0.2 sec
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(now + 0.25);
+        osc2.stop(now + 0.45);
+    }
 }
 
 // Class representing an individual card.

@@ -126,9 +126,9 @@ class Level1 {
       const centerCardElem = document.getElementById("centerCard");
       // Move the card based on the key pressed:
       if (key === 'S') {
-        centerCardElem.style.transform = "translateX(-150px)";
+        centerCardElem.style.transform = "translateX(-72px)";
       } else if (key === 'L') {
-        centerCardElem.style.transform = "translateX(150px)";
+        centerCardElem.style.transform = "translateX(72px)";
       }
       
       if (key === correctKey) {
@@ -206,9 +206,9 @@ class Level1 {
       }
       
       if (key === 'S') {
-        centerElem.style.transform = "translateX(-150px)";
+        centerElem.style.transform = "translateX(-72px)";
       } else if (key === 'L') {
-        centerElem.style.transform = "translateX(150px)";
+        centerElem.style.transform = "translateX(72px)";
       }
       
       setTimeout(() => {
@@ -281,9 +281,9 @@ class Level2 {
       const centerCardElem = document.getElementById("centerCard");
       // Move the card based on the key pressed:
       if (key === 'S') {
-        centerCardElem.style.transform = "translateX(-150px)";
+        centerCardElem.style.transform = "translateX(-72px)";
       } else if (key === 'L') {
-        centerCardElem.style.transform = "translateX(150px)";
+        centerCardElem.style.transform = "translateX(72px)";
       }
       
       if (key === correctKey) {
@@ -363,9 +363,9 @@ class Level2 {
       }
       
       if (key === 'S') {
-        centerElem.style.transform = "translateX(-150px)";
+        centerElem.style.transform = "translateX(-72px)";
       } else if (key === 'L') {
-        centerElem.style.transform = "translateX(150px)";
+        centerElem.style.transform = "translateX(72px)";
       }
       
       setTimeout(() => {

@@ -381,16 +381,144 @@ class Level2 {
   }
 }
 
-
-/* ---------- Level3 (Placeholder) ---------- */
+/* ---------- Level3 (Complex Sorting) ---------- */
 class Level3 {
-  constructor(game) { this.game = game; }
-  start() {
-    console.log("Level 3 placeholder: not implemented yet.");
+  constructor(game) {
+    this.game = game;
+  }
+
+  renderReferenceCards() {
+    const container = document.getElementById('referenceCards');
+    container.innerHTML = "";
+    // Create 4 reference cards:
+    // Card 1: 1 green triangle – key A
+    const card1 = document.createElement('div');
+    card1.className = "card";
+    card1.innerHTML = '<div class="shape green-triangle"></div>';
+    
+    // Card 2: 2 red circles – key S
+    const card2 = document.createElement('div');
+    card2.className = "card";
+    card2.innerHTML = '<div class="shape red-circle-2"></div>';
+    
+    // Card 3: 3 blue squares – key L
+    const card3 = document.createElement('div');
+    card3.className = "card";
+    card3.innerHTML = '<div class="shape blue-square-3"></div>';
+    
+    // Card 4: 4 purple diamonds – key ;
+    const card4 = document.createElement('div');
+    card4.className = "card";
+    card4.innerHTML = '<div class="shape purple-diamond-4"></div>';
+    
+    container.appendChild(card1);
+    container.appendChild(card2);
+    container.appendChild(card3);
+    container.appendChild(card4);
+  }
+
+  startTutorials() {
+    // First, render the four reference cards for Level 3.
+    this.renderReferenceCards();
+    // Then start the tutorials.
+    this.tutorial1();
+  }
+
+  tutorial1() {
+    // Tutorial 1 (Shape): Center card is a red diamond with quantity 2.
     document.getElementById('instruction').textContent =
-      "Level 3 is not implemented yet. Thanks for playing!";
+      "Level 3 Tutorial 1 (Shape): If sorting by shape, place the card under the red diamond (2 items). In this case, press ';'. Press spacebar to start.";
+    
+    const handler = (e) => {
+      if (e.code === 'Space') {
+        document.removeEventListener('keydown', handler);
+        // For Level 3, we pass a full class string to Card.
+        let card = new Card("red-diamond-2", null, "center");
+        card.render();
+        this.waitTutorialResponse(";", () => {
+          this.tutorial2();
+        });
+      }
+    };
+    document.addEventListener('keydown', handler);
+  }
+
+  tutorial2() {
+    // Tutorial 2 (Color): Center card is a green square with quantity 1.
+    document.getElementById('instruction').textContent =
+      "Level 3 Tutorial 2 (Color): If sorting by color, place the card under the green square (1 item). In this case, press 'A'. Press spacebar to start.";
+    
+    const handler = (e) => {
+      if (e.code === 'Space') {
+        document.removeEventListener('keydown', handler);
+        let card = new Card("green-square-1", null, "center");
+        card.render();
+        this.waitTutorialResponse("A", () => {
+          this.tutorial3();
+        });
+      }
+    };
+    document.addEventListener('keydown', handler);
+  }
+
+  tutorial3() {
+    // Tutorial 3 (Quantity): Center card is a purple triangle with quantity 3.
+    document.getElementById('instruction').textContent =
+      "Level 3 Tutorial 3 (Quantity): If sorting by quantity, place the card under the purple triangle (3 items). In this case, press 'L'. Press spacebar to start.";
+    
+    const handler = (e) => {
+      if (e.code === 'Space') {
+        document.removeEventListener('keydown', handler);
+        let card = new Card("purple-triangle-3", null, "center");
+        card.render();
+        this.waitTutorialResponse("L", () => {
+          document.getElementById('instruction').textContent =
+            "Level 3 tutorials complete. Level 3 trials would begin here (placeholder).";
+          // Here you can later call the trial logic.
+        });
+      }
+    };
+    document.addEventListener('keydown', handler);
+  }
+
+  waitTutorialResponse(correctKey, callback) {
+    const instruction = document.getElementById('instruction');
+    instruction.textContent = "Now, press the corresponding key.";
+    
+    const handler = (e) => {
+      const key = e.key.toUpperCase();
+      // Accept keys: A, S, L, or ;.
+      if (key !== 'A' && key !== 'S' && key !== 'L' && key !== ';') return;
+      document.removeEventListener('keydown', handler);
+      
+      const centerElem = document.getElementById('centerCard');
+      // For movement, assume: keys A and S move left; L and ; move right.
+      if (key === 'A' || key === 'S') {
+        centerElem.style.transform = "translateX(-148px)";
+      } else {
+        centerElem.style.transform = "translateX(148px)";
+      }
+      
+      if (key === correctKey) {
+        playSound('correct');
+        instruction.textContent = "Good job!";
+        setTimeout(() => {
+          centerElem.style.transform = "translateX(0)";
+          callback();
+        }, 1000);
+      } else {
+        playSound('incorrect');
+        instruction.textContent = "Try again. Press the correct key.";
+      }
+    };
+    document.addEventListener('keydown', handler);
+  }
+
+  start() {
+    this.startTutorials();
   }
 }
+
 
 /* ---------- Game Class ---------- */
 class Game {
@@ -454,7 +582,27 @@ document.addEventListener('DOMContentLoaded', () => {
       container.appendChild(left);
       container.appendChild(right);
     } else if (level === 3) {
-      container.innerHTML = "Level 3 reference cards (placeholder)";
+      // Render four reference cards.
+      const card1 = document.createElement('div');
+      card1.className = "card";
+      card1.innerHTML = '<div class="shape green-triangle"></div>';  // 1 green triangle (key A)
+      
+      const card2 = document.createElement('div');
+      card2.className = "card";
+      card2.innerHTML = '<div class="shape red-circle-2"></div>';     // 2 red circles (key S)
+      
+      const card3 = document.createElement('div');
+      card3.className = "card";
+      card3.innerHTML = '<div class="shape blue-square-3"></div>';    // 3 blue squares (key L)
+      
+      const card4 = document.createElement('div');
+      card4.className = "card";
+      card4.innerHTML = '<div class="shape purple-diamond-4"></div>';  // 4 purple diamonds (key ;)
+      
+      container.appendChild(card1);
+      container.appendChild(card2);
+      container.appendChild(card3);
+      container.appendChild(card4);
     }
   }
   renderReferenceCards(1);

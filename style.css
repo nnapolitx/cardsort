@@ -54,3 +54,32 @@
   margin-top: 20px;
   font-size: 1.2em;
 }
+
+/* Level 3 Reference & Center Card Classes */
+
+/* 1 green triangle */
+.green-triangle {
+  background-color: green;
+  /* For simplicity, use clip-path to simulate a triangle */
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+/* 2 red circles */
+.red-circle-2 {
+  background-color: red;
+  border-radius: 50%;
+  /* You might overlay a “2” if desired; for now the class name indicates quantity */
+}
+
+/* 3 blue squares */
+.blue-square-3 {
+  background-color: blue;
+  /* Optionally, adjust styling to indicate 3 items */
+}
+
+/* 4 purple diamonds */
+.purple-diamond-4 {
+  background-color: purple;
+  /* Simulate diamond by rotating a square */
+  transform: translate(-50%, -50%) rotate(45deg);
+}

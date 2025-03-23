@@ -76,17 +76,14 @@ class Level1 {
   }
 
   startTutorials() {
-    // We want circle → S (left), square → L (right)
-    // So let's fix the instructions accordingly.
-
-    // Tutorial 1: If center card is a circle, press S.
+    // Tutorial 1: If center card is circle, press S.
     document.getElementById('instruction').textContent =
       "Level 1 Tutorial 1: If the center card is a circle, press S. Press spacebar to start.";
     
     const tutorial1SpaceHandler = (e) => {
       if (e.code === 'Space') {
         document.removeEventListener('keydown', tutorial1SpaceHandler);
-        // Show center card as circle: shape="circle", color="blue"
+        // Show center card as circle: shape = "circle", color = "blue"
         let card = new Card("circle", "blue", "center");
         card.render();
         this.waitTutorialResponse("S", () => {
@@ -98,19 +95,19 @@ class Level1 {
   }
 
   startTutorial2() {
-    // Tutorial 2: If the center card is a square, press L.
+    // Tutorial 2: If center card is square, press L.
     document.getElementById('instruction').textContent =
       "Level 1 Tutorial 2: If the center card is a square, press L. Press spacebar to start.";
     
     const tutorial2SpaceHandler = (e) => {
       if (e.code === 'Space') {
         document.removeEventListener('keydown', tutorial2SpaceHandler);
-        // Show center card as square: shape="square", color="red"
+        // Show center card as square: shape = "square", color = "red"
         let card = new Card("square", "red", "center");
         card.render();
         this.waitTutorialResponse("L", () => {
-          // After tutorials, start trials.
-          this.game.startTrialsLevel1();
+          // Instead of directly starting trials, prompt the user with additional instructions.
+          this.promptStartRealTrials();
         });
       }
     };
@@ -124,27 +121,102 @@ class Level1 {
     const handler = (e) => {
       const key = e.key.toUpperCase();
       if (key !== 'L' && key !== 'S') return;
+      document.removeEventListener('keydown', handler);
+      
+      const centerCardElem = document.getElementById("centerCard");
+      // Move the card based on the key pressed:
+      if (key === 'S') {
+        centerCardElem.style.transform = "translateX(-150px)";
+      } else if (key === 'L') {
+        centerCardElem.style.transform = "translateX(150px)";
+      }
+      
       if (key === correctKey) {
-        document.removeEventListener('keydown', handler);
         playSound('correct');
         instruction.textContent = "Good job!";
         setTimeout(callback, 1000);
       } else {
         playSound('incorrect');
         instruction.textContent = "Try again. Press the correct key.";
+        // (Leave the listener removed so they must press again)
       }
     };
     document.addEventListener('keydown', handler);
   }
-
-  // For simplicity, we simulate 16 trials with a message
+  
+  promptStartRealTrials() {
+    const instruction = document.getElementById('instruction');
+    instruction.textContent =
+      "Good job. Now we are going to start the real trial. You will have to correctly sort the center card based on its shape 16 times. Remember, the circle goes to the left (S key) and the square to the right (L key). When you are ready, press the spacebar to begin.";
+    
+    const promptHandler = (e) => {
+      if (e.code === 'Space') {
+        document.removeEventListener('keydown', promptHandler);
+        this.game.startTrialsLevel1();
+      }
+    };
+    document.addEventListener('keydown', promptHandler);
+  }
+  
   runTrials() {
-    document.getElementById('instruction').textContent =
-      "Starting Level 1 trials (16 trials).";
-    // In a real implementation, you'd loop through 16 trial instances.
-    setTimeout(() => {
+    // Initialize trial count and start the loop.
+    this.currentTrialIndex = 0;
+    this.totalTrials = 16;
+    this.doNextTrial();
+  }
+
+  doNextTrial() {
+    if (this.currentTrialIndex >= this.totalTrials) {
       this.game.levelComplete(1);
-    }, 2000);
+      return;
+    }
+    // Randomly choose a card:
+    // If the card is a circle, it will be blue and the correct key is S (move left).
+    // If the card is a square, it will be red and the correct key is L (move right).
+    const isCircle = Math.random() > 0.5;
+    const shape = isCircle ? "circle" : "square";
+    const color = isCircle ? "blue" : "red";
+    const correctKey = isCircle ? "S" : "L";
+    
+    let card = new Card(shape, color, "center");
+    card.render();
+    
+    this.waitTrialResponse(correctKey, () => {
+      this.currentTrialIndex++;
+      this.doNextTrial();
+    });
+  }
+
+  waitTrialResponse(correctKey, callback) {
+    const instruction = document.getElementById('instruction');
+    instruction.textContent = "Sort the card using the correct key.";
+    
+    const handler = (e) => {
+      const key = e.key.toUpperCase();
+      if (key !== 'L' && key !== 'S') return;
+      document.removeEventListener('keydown', handler);
+      
+      const centerElem = document.getElementById('centerCard');
+      if (key === correctKey) {
+        playSound('correct');
+        instruction.textContent = "Good job!";
+      } else {
+        playSound('incorrect');
+        instruction.textContent = "Incorrect. Moving on.";
+      }
+      
+      if (key === 'S') {
+        centerElem.style.transform = "translateX(-150px)";
+      } else if (key === 'L') {
+        centerElem.style.transform = "translateX(150px)";
+      }
+      
+      setTimeout(() => {
+        centerElem.style.transform = "translateX(0)";
+        callback();
+      }, 1000);
+    };
+    document.addEventListener('keydown', handler);
   }
 
   start() {
